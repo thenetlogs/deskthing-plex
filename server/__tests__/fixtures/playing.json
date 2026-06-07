@@ -1,0 +1,3 @@
+{ "MediaContainer": { "size": 1, "Metadata": [
+  { "type": "track", "ratingKey": "101", "title": "Beautiful Day", "grandparentTitle": "U2", "parentTitle": "All That You Can't Leave Behind", "duration": 248066, "viewOffset": 42000, "thumb": "/library/metadata/101/thumb/1", "Player": { "state": "playing", "title": "Plexamp", "product": "Plexamp", "machineIdentifier": "aaa" }, "User": { "title": "serhii" } }
+] } }

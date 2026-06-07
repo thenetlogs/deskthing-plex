@@ -1,0 +1,28 @@
+{
+  "name": "deskthing-plex",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "deskthing dev",
+    "build": "deskthing package",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@deskthing/server": "^0.11.6",
+    "@deskthing/client": "^0.11.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@deskthing/cli": "^0.11.10",
+    "@deskthing/types": "^0.11.16",
+    "@types/node": "^22.10.7",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.19",
+    "vitest": "^2.1.0"
+  }
+}

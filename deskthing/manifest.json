@@ -1,0 +1,11 @@
+{
+  "id": "plex",
+  "label": "Plex",
+  "version": "0.1.0",
+  "description": "Now-playing from a Plex Media Server (Plexamp) via the Plex HTTP API.",
+  "author": "Serhii Mukha",
+  "requires": [],
+  "tags": ["audiosource"],
+  "requiredVersions": { "server": ">=0.11.13", "client": ">=0.11.2" },
+  "platforms": ["windows", "linux", "mac", "mac64", "macarm", "arm64", "x64"]
+}
