@@ -276,7 +276,7 @@ import type { PlexMetadata, PlexSessionsResponse } from "./types";
 const matchesTarget = (m: PlexMetadata, target: string): boolean => {
   if (!target) return true;
   const t = target.toLowerCase();
-  const hay = [m.Player?.title, m.Player?.product, m.User?.title]
+  const hay = [m.Player?.title, m.Player?.product, m.User?.title, m.grandparentTitle, m.title]
     .filter(Boolean)
     .map((s) => s!.toLowerCase());
   return hay.some((h) => h.includes(t));

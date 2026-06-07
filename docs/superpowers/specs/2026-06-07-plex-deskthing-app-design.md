@@ -83,7 +83,8 @@ src/ + index.html           # minimal client bundle (Vite + @deskthing/client)
 - `plex_url` — `SETTING_TYPES.STRING`, e.g. `http://192.168.x.x:32400`
 - `plex_token` — `SETTING_TYPES.STRING` (`X-Plex-Token`)
 - `poll_interval` — `SETTING_TYPES.NUMBER`, default `2000` ms
-- `target` — `SETTING_TYPES.STRING`, optional player/product/user filter; empty = auto-pick
+- `target` — `SETTING_TYPES.STRING`, optional case-insensitive filter (matches player
+  title/product, user, artist, or track); empty = auto-pick
 - `connection_status` — `SETTING_TYPES.STRING`, read-only/disabled label updated each
   poll (`OK` / `401 invalid token` / `unreachable` / `no session`) for diagnosability
 
@@ -123,8 +124,8 @@ Other required `SongData` fields (`volume`, `shuffle_state`, `repeat_state`,
 ### Session selection (deterministic)
 
 1. Keep `Metadata` where `type === 'track'`.
-2. If `target` non-empty, keep where `Player.title`/`Player.product`/`User.title`
-   matches (case-insensitive contains).
+2. If `target` non-empty, keep where `Player.title`/`Player.product`/`User.title`/
+   `grandparentTitle` (artist)/`title` (track) matches (case-insensitive contains).
 3. Prefer `Player.state === 'playing'`.
 4. **Deterministic tiebreak:** stable sort by `Player.machineIdentifier`, take first.
    (Avoids ping-pong between two concurrent streams. Empty `target` is documented as
