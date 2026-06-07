@@ -29,6 +29,13 @@ export const getConfig = async () => {
 };
 
 let lastStatus: ConnStatus | "" = "";
+
+// Reset the dedupe cache so the next setConnectionStatus always writes.
+// Call on STOP/PURGE so a restart re-publishes the status even if unchanged.
+export const resetStatusCache = () => {
+  lastStatus = "";
+};
+
 export const setConnectionStatus = async (status: ConnStatus) => {
   if (status === lastStatus) return; // avoid redundant writes
   lastStatus = status;

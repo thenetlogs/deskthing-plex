@@ -1,6 +1,6 @@
 import { DeskThing } from "@deskthing/server";
 import { DESKTHING_EVENTS, SongEvent, AUDIO_REQUESTS } from "@deskthing/types";
-import { initSettings, getConfig, setConnectionStatus } from "./settings";
+import { initSettings, getConfig, setConnectionStatus, resetStatusCache } from "./settings";
 import { fetchSessions, PlexError } from "./plexClient";
 import { pickSession, toSongData } from "./sessionMapper";
 import { makeThumbnailCache, downloadArt } from "./thumbnailCache";
@@ -60,6 +60,7 @@ const start = async () => {
 const stop = async () => {
   if (timer) clearInterval(timer);
   timer = null;
+  resetStatusCache(); // re-publish status on next start even if unchanged
   console.log("Plex audio source stopped");
 };
 
