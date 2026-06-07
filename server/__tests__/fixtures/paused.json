@@ -1,0 +1,3 @@
+{ "MediaContainer": { "size": 1, "Metadata": [
+  { "type": "track", "ratingKey": "102", "title": "One", "grandparentTitle": "U2", "parentTitle": "Achtung Baby", "duration": 276000, "viewOffset": 1000, "thumb": "/library/metadata/102/thumb/1", "Player": { "state": "paused", "product": "Plexamp", "machineIdentifier": "bbb" } }
+] } }

@@ -1,0 +1,4 @@
+{ "MediaContainer": { "size": 2, "Metadata": [
+  { "type": "track", "ratingKey": "201", "title": "B-side", "grandparentTitle": "Artist Z", "parentTitle": "Z", "duration": 100000, "viewOffset": 5000, "Player": { "state": "playing", "product": "Plexamp", "machineIdentifier": "zzz" } },
+  { "type": "track", "ratingKey": "202", "title": "A-side", "grandparentTitle": "Artist A", "parentTitle": "A", "duration": 100000, "viewOffset": 5000, "Player": { "state": "playing", "product": "Plexamp", "machineIdentifier": "aaa" } }
+] } }

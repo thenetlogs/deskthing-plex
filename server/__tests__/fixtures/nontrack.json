@@ -1,0 +1,3 @@
+{ "MediaContainer": { "size": 1, "Metadata": [
+  { "type": "episode", "ratingKey": "301", "title": "Some Show", "Player": { "state": "playing", "machineIdentifier": "ccc" } }
+] } }
