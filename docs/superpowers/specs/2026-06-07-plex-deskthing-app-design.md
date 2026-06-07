@@ -21,7 +21,9 @@ HTTP API** instead of the OS, fully bypassing MediaRemote. Works on any host OS.
 
 **IN (MVP):**
 - Read-only now-playing: track title, artist, album, cover art, duration, position, play/pause state.
-- Position interpolation anchor (`timestamp`) so the client progress bar is smooth between polls.
+- Smooth progress bar: the DeskThing client interpolates from `track_progress` + `is_playing`
+  at message-receipt time, so we send fresh `track_progress` each poll (SongData v2 has no
+  `timestamp` field).
 - Thumbnail cached by track id (fetched only when the track changes).
 - Configuration via DeskThing app Settings (no hardcoded secrets) + a read-only
   connection-status field for diagnosability.
@@ -93,7 +95,7 @@ needed); the poll loop picks up new values on the next tick.
 ```
 poll timer (in-flight guard) ──> plexClient.fetchSessions()  [header: X-Plex-Token, Accept: json]
    ──> sessionMapper.pickSession(container, target)          [PURE]
-   ──> sessionMapper.toSongData(session, fetchedAtMs)        [PURE, thumbnail=raw thumb path or null]
+   ──> sessionMapper.toSongData(session)                     [PURE, thumbnail=raw thumb path or null]
    ──> thumbnailCache.resolve(ratingKey, thumbUrl)           [impure, only if track changed]
    ──> songStore.sendSong(SongData)                          ──> built-in now-playing view
 SongEvent.GET / REFRESH ──> songStore returns cached SongData
@@ -109,7 +111,6 @@ SongEvent.GET / REFRESH ──> songStore returns cached SongData
 | `track_duration` (ms) | `Metadata.duration` |
 | `track_progress` (ms) | `Metadata.viewOffset` |
 | `is_playing` | `Metadata.Player.state === 'playing'` |
-| `timestamp` | `fetchedAtMs` (wall clock at fetch) — client interpolates progress |
 | `thumbnail` | `thumbnailCache.resolve(...)` → `/resource/image/plex/<ratingKey>.png` |
 | `id` | `Metadata.ratingKey` |
 | `version` | `2` (required) |
