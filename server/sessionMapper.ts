@@ -1,4 +1,5 @@
 import type { PlexMetadata, PlexSessionsResponse } from "./types";
+import type { SongData, SongData11 } from "@deskthing/types";
 
 const matchesTarget = (m: PlexMetadata, target: string): boolean => {
   if (!target) return true;
@@ -22,3 +23,40 @@ export const pickSession = (
   const playing = sorted.find((m) => m.Player?.state === "playing");
   return playing ?? sorted[0];
 };
+
+const pickThumb = (m: PlexMetadata): string =>
+  m.thumb ?? m.parentThumb ?? m.grandparentThumb ?? "";
+
+export const EMPTY_SONG: SongData11 = {
+  version: 2,
+  source: "plex",
+  track_name: "",
+  artist: "",
+  album: "",
+  thumbnail: "",
+  track_duration: 0,
+  track_progress: 0,
+  is_playing: false,
+  abilities: [],
+  volume: 0,
+  shuffle_state: null,
+  repeat_state: "off",
+  playlist: null,
+  playlist_id: null,
+  device: null,
+  device_id: null,
+  id: null,
+};
+
+// PURE: thumbnail is the raw Plex thumb path (resolved to a served URL elsewhere).
+export const toSongData = (m: PlexMetadata): SongData11 => ({
+  ...EMPTY_SONG,
+  track_name: m.title ?? "",
+  artist: m.grandparentTitle ?? "",
+  album: m.parentTitle ?? "",
+  thumbnail: pickThumb(m),
+  track_duration: m.duration ?? 0,
+  track_progress: m.viewOffset ?? 0,
+  is_playing: m.Player?.state === "playing",
+  id: m.ratingKey ?? null,
+});
