@@ -8,6 +8,23 @@ export type ConnStatus =
   | "unreachable"
   | "not configured";
 
+export interface PlexConfig {
+  url: string;
+  token: string;
+  interval: number;
+  target: string;
+}
+
+const DEFAULTS: PlexConfig = { url: "", token: "", interval: 2000, target: "" };
+let cached: PlexConfig = { ...DEFAULTS };
+
+const parse = (s: any): PlexConfig => ({
+  url: (s?.plex_url?.value as string) ?? "",
+  token: (s?.plex_token?.value as string) ?? "",
+  interval: Math.max(1000, Number(s?.poll_interval?.value ?? 2000)),
+  target: (s?.target?.value as string) ?? "",
+});
+
 export const initSettings = async () => {
   await DeskThing.initSettings({
     plex_url: { id: "plex_url", label: "Plex Server URL", type: SETTING_TYPES.STRING, value: "" },
@@ -16,31 +33,35 @@ export const initSettings = async () => {
     target: { id: "target", label: "Player filter (optional)", type: SETTING_TYPES.STRING, value: "" },
     connection_status: { id: "connection_status", label: "Connection status (read-only)", type: SETTING_TYPES.STRING, value: "not configured" },
   });
+  await refreshConfig();
 };
 
-export const getConfig = async () => {
-  const s = await DeskThing.getSettings();
-  return {
-    url: (s?.plex_url?.value as string) ?? "",
-    token: (s?.plex_token?.value as string) ?? "",
-    interval: Math.max(1000, Number(s?.poll_interval?.value ?? 2000)),
-    target: (s?.target?.value as string) ?? "",
-  };
+// Re-read settings from the server and update the in-memory cache. Wrapped so a
+// failure can never reject into a fatal worker error.
+export const refreshConfig = async () => {
+  try {
+    const s = await DeskThing.getSettings();
+    if (s) cached = parse(s);
+  } catch (e) {
+    console.error("[plex] getSettings failed:", e);
+  }
 };
+
+// Synchronous read of the cached config — no per-tick IPC.
+export const getConfig = (): PlexConfig => cached;
 
 let lastStatus: ConnStatus | "" = "";
-
-// Reset the dedupe cache so the next setConnectionStatus always writes.
-// Call on STOP/PURGE so a restart re-publishes the status even if unchanged.
 export const resetStatusCache = () => {
   lastStatus = "";
 };
 
-export const setConnectionStatus = async (status: ConnStatus) => {
-  if (status === lastStatus) return; // avoid redundant writes
+// Fire-and-forget. Writing the status to settings is best-effort and must never
+// throw or cascade — the SETTINGS event it triggers only refreshes the cache.
+export const setConnectionStatus = (status: ConnStatus) => {
+  if (status === lastStatus) return;
   lastStatus = status;
-  // Setter name verified in Task 1 Step 3:
-  await DeskThing.setSettings({
+  console.log(`[plex] connection_status: ${status}`);
+  DeskThing.setSettings({
     connection_status: { id: "connection_status", label: "Connection status (read-only)", type: SETTING_TYPES.STRING, value: status },
-  });
+  }).catch((e) => console.error("[plex] setSettings(connection_status) failed:", e));
 };

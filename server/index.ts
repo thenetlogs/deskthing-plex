@@ -1,84 +1,108 @@
 import { DeskThing } from "@deskthing/server";
 import { DESKTHING_EVENTS, SongEvent, AUDIO_REQUESTS } from "@deskthing/types";
-import { initSettings, getConfig, setConnectionStatus, resetStatusCache } from "./settings";
+import {
+  initSettings,
+  getConfig,
+  refreshConfig,
+  setConnectionStatus,
+  resetStatusCache,
+} from "./settings";
 import { fetchSessions, PlexError } from "./plexClient";
 import { pickSession, toSongData } from "./sessionMapper";
 import { makeThumbnailCache, downloadArt } from "./thumbnailCache";
 import { setSong, clearSong, resendSong } from "./songStore";
 
+// Safety nets: an unhandled rejection/exception in a worker thread is fatal by
+// default in Node and would abort the whole DeskThing process. Log instead.
+process.on("unhandledRejection", (e) => console.error("[plex] unhandledRejection:", e));
+process.on("uncaughtException", (e) => console.error("[plex] uncaughtException:", e));
+
 const cache = makeThumbnailCache(downloadArt);
 let timer: ReturnType<typeof setInterval> | null = null;
 let inFlight = false;
+let currentInterval = 0;
 
 const tick = async () => {
-  if (inFlight) return; // in-flight guard: skip if previous still running
+  if (inFlight) return; // skip if the previous poll is still running
   inFlight = true;
   try {
-    const { url, token, target } = await getConfig();
+    const { url, token, target } = getConfig();
     if (!url || !token) {
-      await setConnectionStatus("not configured");
+      setConnectionStatus("not configured");
       return;
     }
     const res = await fetchSessions(url, token);
     const session = pickSession(res, target);
     if (!session) {
-      await setConnectionStatus("no session");
+      setConnectionStatus("no session");
       clearSong();
       return;
     }
     const song = toSongData(session);
-    const thumbUrl = song.thumbnail
-      ? `${url.replace(/\/$/, "")}${song.thumbnail}`
-      : "";
+    const thumbUrl = song.thumbnail ? `${url.replace(/\/$/, "")}${song.thumbnail}` : "";
     song.thumbnail = await cache.resolve(session.ratingKey ?? "", thumbUrl, token);
     setSong(song);
-    await setConnectionStatus("OK");
+    setConnectionStatus("OK");
   } catch (e) {
     if (e instanceof PlexError && e.kind === "unauthorized") {
-      await setConnectionStatus("401 invalid token");
+      setConnectionStatus("401 invalid token");
     } else {
-      await setConnectionStatus("unreachable");
+      setConnectionStatus("unreachable");
     }
   } finally {
     inFlight = false;
   }
 };
 
-const startLoop = async () => {
-  const { interval } = await getConfig();
+// (Re)start the interval only when the configured interval actually changed.
+const ensureTimer = () => {
+  const { interval } = getConfig();
+  if (timer && interval === currentInterval) return;
   if (timer) clearInterval(timer);
-  timer = setInterval(tick, interval);
-  tick();
+  currentInterval = interval;
+  timer = setInterval(() => void tick(), interval);
 };
 
 const start = async () => {
-  await initSettings();
-  await startLoop();
-  console.log("Plex audio source started");
+  try {
+    await initSettings();
+    ensureTimer();
+    void tick();
+    console.log("[plex] audio source started");
+  } catch (e) {
+    console.error("[plex] start failed:", e);
+  }
 };
 
-const stop = async () => {
+const stop = () => {
   if (timer) clearInterval(timer);
   timer = null;
-  resetStatusCache(); // re-publish status on next start even if unchanged
-  console.log("Plex audio source stopped");
+  currentInterval = 0;
+  resetStatusCache();
+  console.log("[plex] audio source stopped");
 };
 
-const purge = async () => {
-  await stop();
+DeskThing.on(DESKTHING_EVENTS.START, () => void start());
+DeskThing.on(DESKTHING_EVENTS.STOP, () => stop());
+DeskThing.on(DESKTHING_EVENTS.PURGE, () => {
+  stop();
   clearSong();
-};
+});
 
-DeskThing.on(DESKTHING_EVENTS.START, start);
-DeskThing.on(DESKTHING_EVENTS.STOP, stop);
-DeskThing.on(DESKTHING_EVENTS.PURGE, purge);
-
-// Re-read interval and restart the loop when settings change.
-DeskThing.on(DESKTHING_EVENTS.SETTINGS, () => startLoop());
+// On settings change: refresh the cache and adjust the timer if the interval
+// changed. We never write settings here, so our own connection_status writes
+// can't create a feedback loop.
+DeskThing.on(DESKTHING_EVENTS.SETTINGS, () => {
+  void refreshConfig().then(ensureTimer);
+});
 
 // Answer client requests for the current song.
-DeskThing.on(SongEvent.GET, (data) => {
-  if (data.request === AUDIO_REQUESTS.SONG || data.request === AUDIO_REQUESTS.REFRESH) {
-    resendSong();
+DeskThing.on(SongEvent.GET, (data: any) => {
+  try {
+    if (data?.request === AUDIO_REQUESTS.SONG || data?.request === AUDIO_REQUESTS.REFRESH) {
+      resendSong();
+    }
+  } catch (e) {
+    console.error("[plex] song GET failed:", e);
   }
 });
