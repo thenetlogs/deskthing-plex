@@ -26,7 +26,14 @@ const tick = async () => {
   if (inFlight) return; // skip if the previous poll is still running
   inFlight = true;
   try {
-    const { url, token, target } = getConfig();
+    let { url, token, target } = getConfig();
+    if (!url || !token) {
+      // Self-heal: the cached config may have missed a racy initial load (e.g.
+      // right after an install/overwrite). Re-read once before giving up so the
+      // app recovers without needing a manual restart or settings change.
+      await refreshConfig();
+      ({ url, token, target } = getConfig());
+    }
     if (!url || !token) {
       setConnectionStatus("not configured");
       return;
